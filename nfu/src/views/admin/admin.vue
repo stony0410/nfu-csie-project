@@ -1,148 +1,234 @@
 <script setup lang="ts">
-import { ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { apiLogin } from '@/services/api'
 import { useAuthStore } from '@/stores/auth'
+import { usePermissionsStore } from '@/stores/permissions'
+import type { Role, Feature } from '@/stores/permissions'
 import logo from '@/assets/nfu-csie-project.png'
 
 const router = useRouter()
 const auth = useAuthStore()
+const permissions = usePermissionsStore()
 
-const account = ref('')
-const password = ref('')
-const error = ref('')
-const loading = ref(false)
+const roles: { id: Role; label: string }[] = [
+  { id: 'student', label: '學生' },
+  { id: 'teacher', label: '教師' }
+]
 
-async function onLogin() {
-  error.value = ''
+const features: { id: Feature; label: string }[] = [
+  { id: 'search', label: '搜尋專題' },
+  { id: 'register', label: '登記專題' }
+]
 
-  // 帳號必須為數字
-  if (!/^\d+$/.test(account.value)) {
-    error.value = '帳號只能輸入數字'
-    return
-  }
+function togglePermission(role: Role, feature: Feature) {
+  const current = permissions.matrix[role][feature]
+  permissions.setPermission(role, feature, !current)
+}
 
-  // 密碼不能空
-  if (!password.value) {
-    error.value = '請輸入密碼'
-    return
-  }
-
-  loading.value = true
-
-  try {
-    // 🔥 呼叫後端 API
-    const data = await apiLogin(account.value, password.value)
-
-    // 🔥 存登入狀態
-    auth.setAuth(data)
-
-    // 🔥 依後端回傳角色導頁
-    router.push(`/${data.role}`)
-  } catch (err: any) {
-    error.value = err?.message || '登入失敗'
-  } finally {
-    loading.value = false
-  }
+function onReset() {
+  permissions.resetToDefault()
 }
 </script>
 
 <template>
   <div class="page">
-    <!-- 上方：Logo + 標題 -->
-    <router-link to="/" class="top">
-      <img class="logo" :src="logo" alt="NFU CSIE Project Section" />
-    </router-link>
+    <header class="top">
+      <router-link to="/" class="logo-wrap">
+        <img class="logo" :src="logo" alt="NFU CSIE Project Section" />
+      </router-link>
+      <div class="user-info" v-if="auth.account">
+        <span>{{ auth.account }}</span>
+        <button class="logout-btn" @click="auth.logout(); router.push('/')">登出</button>
+      </div>
+    </header>
 
-    <!-- 中間：登入卡片 -->
+    <main class="main">
+      <h1 class="page-title">權限管理</h1>
+      <p class="page-desc">設定各角色可使用哪些功能</p>
+
+      <div class="perm-card">
+        <div class="perm-header">
+          <h2>功能權限</h2>
+          <button class="reset-btn" @click="onReset">還原預設</button>
+        </div>
+
+        <table class="perm-table">
+          <thead>
+            <tr>
+              <th class="corner">功能 \ 角色</th>
+              <th v-for="r in roles" :key="r.id">{{ r.label }}</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="f in features" :key="f.id">
+              <td class="feature-name">{{ f.label }}</td>
+              <td v-for="r in roles" :key="r.id">
+                <label class="toggle-wrap">
+                  <input
+                    type="checkbox"
+                    :checked="permissions.matrix[r.id][f.id]"
+                    @change="togglePermission(r.id, f.id)"
+                  />
+                  <span class="toggle-label">{{ permissions.matrix[r.id][f.id] ? '開啟' : '關閉' }}</span>
+                </label>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </main>
   </div>
 </template>
 
 <style scoped>
 .page {
   min-height: 100vh;
-  background: #fff;
+  background: #f2f4f8;
 }
 
-/* 你圖那種上方白底橫幅 */
 .top {
   display: flex;
-  justify-content: center;
-  padding: 18px 12px;
+  justify-content: space-between;
+  align-items: center;
+  padding: 18px 24px;
+  background: #fff;
   border-bottom: 1px solid #eaeaea;
-  cursor: pointer;
+}
+
+.logo-wrap {
   text-decoration: none;
 }
 
 .logo {
-  max-width: 700px;
+  max-width: 400px;
   width: 100%;
   height: auto;
 }
 
-/* 中間登入框 */
-.center {
-  display: grid;
-  place-items: center;
-  padding: 36px 12px;
+.user-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 14px;
+  color: #555;
 }
 
-.card {
-  width: 360px;
-  border: 1px solid #ececec;
-  border-radius: 10px;
-  padding: 18px;
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.06);
-}
-
-.title {
-  margin: 0 0 12px;
-  font-size: 18px;
-}
-
-.field {
-  display: grid;
-  gap: 6px;
-  margin-top: 12px;
-}
-
-label {
+.logout-btn {
+  padding: 6px 14px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  background: #fff;
+  cursor: pointer;
   font-size: 13px;
-  color: #444;
 }
 
-input {
-  height: 40px;
-  padding: 0 10px;
+.logout-btn:hover {
+  background: #f5f5f5;
+}
+
+.main {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 40px 24px;
+}
+
+.page-title {
+  margin: 0 0 8px;
+  font-size: 22px;
+  font-weight: 600;
+  color: #1a1a1a;
+}
+
+.page-desc {
+  margin: 0 0 24px;
+  font-size: 14px;
+  color: #64748b;
+}
+
+.perm-card {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+}
+
+.perm-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.perm-header h2 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: #1a1a1a;
+}
+
+.reset-btn {
+  padding: 8px 16px;
   border: 1px solid #d9d9d9;
   border-radius: 8px;
-  outline: none;
-}
-
-input:focus {
-  border-color: #2b6ef2;
-}
-
-.error {
-  margin: 10px 0 0;
-  color: #d93025;
+  background: #fff;
   font-size: 13px;
-}
-
-.btn {
-  margin-top: 14px;
-  width: 100%;
-  height: 42px;
-  border: none;
-  border-radius: 10px;
-  background: #2b6ef2;
-  color: #fff;
-  font-weight: 600;
   cursor: pointer;
 }
 
-.btn:disabled {
-  opacity: 0.65;
-  cursor: not-allowed;
+.reset-btn:hover {
+  background: #f5f5f5;
+}
+
+.perm-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.perm-table th,
+.perm-table td {
+  padding: 14px 16px;
+  border: 1px solid #eee;
+  text-align: center;
+}
+
+.perm-table th {
+  background: #f8fafc;
+  font-size: 14px;
+  font-weight: 600;
+  color: #334155;
+}
+
+.perm-table td {
+  font-size: 14px;
+}
+
+.corner {
+  text-align: left;
+  min-width: 120px;
+}
+
+.feature-name {
+  text-align: left;
+  font-weight: 500;
+  color: #334155;
+}
+
+.toggle-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.toggle-wrap input {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+}
+
+.toggle-label {
+  font-size: 13px;
+  color: #64748b;
 }
 </style>

@@ -1,7 +1,7 @@
 export async function apiLogin(account: string, password: string) {
   await new Promise((r) => setTimeout(r, 300))
 
-  if (account === '11111111' && password === 'student123') {
+  if (account === '111' && password === '123') {
     return {
       token: 'demo-token',
       role: 'student' as const,
@@ -9,7 +9,7 @@ export async function apiLogin(account: string, password: string) {
     }
   }
 
-  if (account === '2222222' && password === 'teacher123') {
+  if (account === '222' && password === '123') {
     return {
       token: 'demo-token',
       role: 'teacher' as const,
@@ -17,7 +17,7 @@ export async function apiLogin(account: string, password: string) {
     }
   }
 
-  if (account === '333333' && password === 'admin123') {
+  if (account === '333' && password === '123') {
     return {
       token: 'demo-token',
       role: 'admin' as const,

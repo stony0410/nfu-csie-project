@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { apiLogin } from '@/services/api'
 import { useAuthStore } from '@/stores/auth'
 import logo from '@/assets/nfu-csie-project.png'
+import { ref } from 'vue'
 
 const router = useRouter()
 const auth = useAuthStore()
@@ -16,13 +16,11 @@ const loading = ref(false)
 async function onLogin() {
   error.value = ''
 
-  // 帳號必須為數字
   if (!/^\d+$/.test(account.value)) {
     error.value = '帳號只能輸入數字'
     return
   }
 
-  // 密碼不能空
   if (!password.value) {
     error.value = '請輸入密碼'
     return
@@ -31,13 +29,8 @@ async function onLogin() {
   loading.value = true
 
   try {
-    // 🔥 呼叫後端 API
     const data = await apiLogin(account.value, password.value)
-
-    // 🔥 存登入狀態
     auth.setAuth(data)
-
-    // 🔥 依後端回傳角色導頁
     router.push(`/${data.role}`)
   } catch (err: any) {
     error.value = err?.message || '登入失敗'
@@ -49,14 +42,13 @@ async function onLogin() {
 
 <template>
   <div class="page">
-    <!-- 上方：Logo + 標題 -->
     <router-link to="/" class="top">
       <img class="logo" :src="logo" alt="NFU CSIE Project Section" />
     </router-link>
 
-    <!-- 中間：登入卡片 -->
     <main class="center">
       <section class="card">
+        <form @submit.prevent="onLogin">
         <h2 class="title">登入</h2>
 
         <div class="field">
@@ -73,6 +65,7 @@ async function onLogin() {
         <button class="btn" :disabled="loading" @click="onLogin">
           {{ loading ? '登入中...' : '登入' }}
         </button>
+        </form>
       </section>
     </main>
   </div>
@@ -81,10 +74,9 @@ async function onLogin() {
 <style scoped>
 .page {
   min-height: 100vh;
-  background: #fff;
+  background: #f2f4f8;
 }
 
-/* 你圖那種上方白底橫幅 */
 .top {
   display: flex;
   justify-content: center;
@@ -100,7 +92,6 @@ async function onLogin() {
   height: auto;
 }
 
-/* 中間登入框 */
 .center {
   display: grid;
   place-items: center;
